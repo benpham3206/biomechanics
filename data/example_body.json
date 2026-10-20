@@ -1,0 +1,8 @@
+{
+  "mass_kg": 70,
+  "torso_m": 0.55,
+  "thigh_m": 0.45,
+  "shank_m": 0.45,
+  "upper_arm_m": 0.30,
+  "forearm_m": 0.25
+}
