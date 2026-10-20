@@ -1,0 +1,26 @@
+[
+  {
+    "date": "2026-10-01",
+    "move_id": "wall-push-up",
+    "reps": 5,
+    "rpe": 7,
+    "discomfort": false,
+    "discomfort_notes": ""
+  },
+  {
+    "date": "2026-10-05",
+    "move_id": "wall-push-up",
+    "reps": 8,
+    "rpe": 6,
+    "discomfort": false,
+    "discomfort_notes": ""
+  },
+  {
+    "date": "2026-10-12",
+    "move_id": "incline-push-up",
+    "reps": 8,
+    "rpe": 7,
+    "discomfort": false,
+    "discomfort_notes": ""
+  }
+]

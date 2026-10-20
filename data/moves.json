@@ -1,0 +1,62 @@
+[
+  {
+    "id": "wall-push-up",
+    "name": "Wall push-up",
+    "pattern": "push",
+    "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
+    "geometry": {
+      "support_segments": ["torso_m", "thigh_m", "shank_m"],
+      "mass_fraction": 1.0,
+      "com_fraction": 0.60,
+      "body_angle_deg": 75,
+      "upper_arm_angle_deg": -60,
+      "elbow_angle_deg": 60
+    },
+    "rep_target": 8
+  },
+  {
+    "id": "incline-push-up",
+    "name": "Incline push-up",
+    "pattern": "push",
+    "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
+    "geometry": {
+      "support_segments": ["torso_m", "thigh_m", "shank_m"],
+      "mass_fraction": 1.0,
+      "com_fraction": 0.60,
+      "body_angle_deg": 55,
+      "upper_arm_angle_deg": -60,
+      "elbow_angle_deg": 60
+    },
+    "rep_target": 8
+  },
+  {
+    "id": "knee-push-up",
+    "name": "Knee push-up",
+    "pattern": "push",
+    "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
+    "geometry": {
+      "support_segments": ["torso_m", "thigh_m"],
+      "mass_fraction": 0.80,
+      "com_fraction": 0.55,
+      "body_angle_deg": 0,
+      "upper_arm_angle_deg": -60,
+      "elbow_angle_deg": 60
+    },
+    "rep_target": 8
+  },
+  {
+    "id": "full-push-up",
+    "name": "Full push-up",
+    "pattern": "push",
+    "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
+    "geometry": {
+      "support_segments": ["torso_m", "thigh_m", "shank_m"],
+      "mass_fraction": 1.0,
+      "com_fraction": 0.60,
+      "body_angle_deg": 0,
+      "upper_arm_angle_deg": -60,
+      "elbow_angle_deg": 60
+    },
+    "rep_target": 8
+  }
+]
