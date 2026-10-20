@@ -1,8 +1,9 @@
 # Biomechanics
 
 A local calisthenics progression framework for a complete beginner. V1 covers
-four push movements: wall, incline, knee, and full push-ups. It estimates one
-planar shoulder lever per movement, ranks the moves for your dimensions, and
+ten push steps: wall, rail/counter/table inclines, knee, bench/step inclines,
+and full push-ups. It estimates one planar shoulder lever per movement,
+ranks the moves for your dimensions, and
 uses a completed set to suggest **hold**, **progress**, or **regress** with a
 reason. Muscle groups are tags; they do not have separate levers.
 
@@ -23,8 +24,10 @@ python3 -m biomech --body data/example_body.json --moves data/moves.json --log d
 The example uses a fictional 70 kg body and a **bilateral** shoulder strength
 reference of 150 Nm. That reference is an example normalization value, not a
 strength estimate for you. The output ranks the moves and suggests knee push-ups
-after the last logged incline set: 8 reps at RPE 7, without discomfort. Its
-estimated relative torque is 16.5% higher.
+after the last logged table incline set: 8 reps at RPE 7, without discomfort.
+Its estimated relative torque is 18.3% higher. Every consecutive push step is
+10–20% higher for this example body. The [step table](docs/model.md#difficulty-and-ranking)
+lists the poses and calculated jumps; other dimensions can change them.
 
 To use your own inputs:
 
@@ -49,7 +52,7 @@ in the selected pattern; an empty log produces a clear error. See
 ## Verify
 
 This one command runs the full acceptance suite, the CLI example, and the
-eight-session beginner simulation:
+14-session beginner simulation:
 
 ```sh
 python3 scripts/verify.py
@@ -65,7 +68,7 @@ generated locally and ignored by Git. Rerun the command to reproduce it.
 | Path | Purpose |
 | --- | --- |
 | `biomech/` | Lever math, ranking, decisions, validated loaders, read-only CLI |
-| `data/` | Four move definitions and fictional body/session examples |
+| `data/` | Ten move definitions and fictional body/session examples |
 | `docs/model.md` | Equations, hand calculation, progression policy, limits |
 | `docs/measurements.md` | Manual/JSON dimensions and unimplemented PLY adapter |
 | `docs/sessions.md` | Session schema and validation rules |

@@ -87,6 +87,51 @@ and denominator, so it cancels. Our body-normal reaction assumption is what
 produces the cosine reduction. Real wall/floor contacts, friction, hand
 placement, and segment motion can produce different forces.
 
+## Catalogue support heights and poses
+
+The incline entries use nominal hand-support heights of 1.45 m (high rail),
+1.25 m (rail), 0.90 m (counter), 0.75 m (table), 0.45 m (bench), and 0.25 m
+(step). These are example surfaces, not required dimensions for all users.
+Use a stable surface that can bear the load. Height alone does not determine
+this model's torque: the arm pose changes the shoulder-to-hand projection too.
+
+For each incline, choose the estimated arm pose in the table below. With the
+foot pivot at height zero, reconstruct the hand height from the same geometry:
+
+```text
+q = u sin(alpha) + v sin(alpha + beta)
+h = (S + d) sin(theta) + q cos(theta)
+R = sqrt((S + d)^2 + q^2)
+theta = asin(h / R) - atan2(q, S + d)
+```
+
+The stored inclinations were calculated with `data/example_body.json` and
+rounded to six decimal degrees. Those digits preserve the calculation; they
+are not measurement precision. No height field or solver was added to the
+runtime. With other dimensions, the same stored angles imply other heights.
+The 10–20% guarantee applies to the example body only. Re-rank other bodies
+and review any flagged gaps.
+
+Both counter entries use the same 90 cm surface. The tucked pose has
+`alpha = -90°`, so the upper arm is perpendicular to the body. The headward-hand
+pose uses `alpha = -85°`. Both use `beta = 60°`; their different projections
+produce different static shoulder torques without changing mass or COM
+fractions. These are specified model poses, not measured technique effects.
+
+The existing ID `incline-push-up` now denotes the 75 cm table pose instead of
+the former 55° reference incline. Its estimated torque changes from 74.0911 Nm
+to 72.9663 Nm for the example body. All four original IDs remain valid; wall,
+knee, and full geometry are unchanged. Old incline logs therefore use the new
+pose when re-evaluated. The CLI does not alter those logs.
+
+The bench and step entries use full-length, foot-supported links. Computed
+torque puts both **after knee push-ups**, bridging knee to full. No negative
+or eccentric push-up is included: a single static pose cannot model lowering
+speed, acceleration, or eccentric strength capacity. The original horizontal
+knee/full poses remain abstract reference geometries; their hand heights are
+not constrained to a floor. Checking incline heights does not add contact,
+friction, or anatomical validation to the model.
+
 ## Worked hand calculation
 
 Use `data/example_body.json`:
@@ -112,9 +157,20 @@ tau_shoulders = 322.9346 * 0.40 = 129.1738 Nm
 tau_one_shoulder = 64.5869 Nm
 ```
 
-With the same geometry, a 55-degree incline gives
-`F = 322.9346 * cos(55) = 185.2277 N` and
-`tau = 185.2277 * 0.40 = 74.0911 Nm`.
+For the table incline (`incline-push-up`), `alpha = -83°`, `beta = 60°`:
+
+```text
+d = 0.30 cos(-83) + 0.25 cos(-23) = 0.2666870 m
+q = 0.30 sin(-83) + 0.25 sin(-23) = -0.3954466 m
+H = 1.45 + d = 1.7166870 m
+h = 0.75 m implies theta = 38.169472 degrees
+F = 597.429 cos(38.169472) / 1.7166870 = 273.6029 N
+tau = F * d = 72.9663 Nm
+```
+
+The 25 cm step uses `alpha = -70°`, `beta = 60°`, `theta = 18.111845°`:
+`d = 0.3488080 m`, `F = 315.6686 N`, and `tau = 110.1077 Nm`.
+This gives a 13.5% increase from the bench and leaves a 17.3% jump to full.
 
 For the knee variant, remove the shank from the span and assume `f = 0.80`,
 `k = 0.55`, `theta = 0`:
@@ -154,15 +210,24 @@ that pattern. A ratio above 1 does not trigger an extra rule in v1.
 
 For the example body and `T_ref = 150 Nm`:
 
-| Move | Inclination | Total transverse hand force | Bilateral torque | Relative torque | Jump from previous |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Wall push-up | 75° | 83.5816 N | 33.4326 Nm | 0.2229 | — |
-| Incline push-up | 55° | 185.2277 N | 74.0911 Nm | 0.4939 | 121.6%, flagged |
-| Knee push-up | 0° | 215.8200 N | 86.3280 Nm | 0.5755 | 16.5% |
-| Full push-up | 0° | 322.9346 N | 129.1738 Nm | 0.8612 | 49.6%, flagged |
+| Move | Body angle θ | Arm angle α | Total transverse hand force | Bilateral torque | Relative torque | Jump from previous |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Wall push-up | 75.000000° | -60° | 83.5816 N | 33.4326 Nm | 0.2229 | — |
+| High rail incline push-up (145 cm) | 66.995261° | -80° | 134.4141 N | 38.5792 Nm | 0.2572 | 15.4% |
+| Rail incline push-up (125 cm) | 58.944803° | -85° | 180.9993 N | 45.7428 Nm | 0.3050 | 18.6% |
+| Counter incline push-up, tucked (90 cm) | 45.860932° | -90° | 249.6546 N | 54.0518 Nm | 0.3603 | 18.2% |
+| Counter incline push-up, headward hands (90 cm) | 44.311404° | -85° | 251.0640 N | 63.4498 Nm | 0.4230 | 17.4% |
+| Table incline push-up (75 cm) | 38.169472° | -83° | 273.6029 N | 72.9663 Nm | 0.4864 | 15.0% |
+| Knee push-up | 0.000000° | -60° | 215.8200 N | 86.3280 Nm | 0.5755 | 18.3% |
+| Bench incline push-up (45 cm) | 25.772719° | -75° | 304.1049 N | 97.0481 Nm | 0.6470 | 12.4% |
+| Step incline push-up (25 cm) | 18.111845° | -70° | 315.6686 N | 110.1077 Nm | 0.7341 | 13.5% |
+| Full push-up | 0.000000° | -60° | 322.9346 N | 129.1738 Nm | 0.8612 | 17.3% |
 
-This order is calculated, not hard-coded. Different dimensions or geometry
-can change it. All four moves have a target of 8 completed reps.
+All entries use `beta = 60°` and target 8 completed reps. All nine consecutive
+jumps are within the inclusive 10–20% band using unrounded computed values
+(minimum 12.4%, maximum 18.6% when displayed). The order is calculated from
+torque, not hard-coded from names, surface height, or file order. Different
+body dimensions or geometry can change the order and the gaps.
 
 ## Progression policy
 
