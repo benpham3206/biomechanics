@@ -15,16 +15,76 @@
     "rep_target": 8
   },
   {
-    "id": "incline-push-up",
-    "name": "Incline push-up",
+    "id": "high-rail-push-up",
+    "name": "High rail incline push-up (145 cm)",
     "pattern": "push",
     "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
     "geometry": {
       "support_segments": ["torso_m", "thigh_m", "shank_m"],
       "mass_fraction": 1.0,
       "com_fraction": 0.60,
-      "body_angle_deg": 55,
-      "upper_arm_angle_deg": -60,
+      "body_angle_deg": 66.995261,
+      "upper_arm_angle_deg": -80,
+      "elbow_angle_deg": 60
+    },
+    "rep_target": 8
+  },
+  {
+    "id": "rail-push-up",
+    "name": "Rail incline push-up (125 cm)",
+    "pattern": "push",
+    "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
+    "geometry": {
+      "support_segments": ["torso_m", "thigh_m", "shank_m"],
+      "mass_fraction": 1.0,
+      "com_fraction": 0.60,
+      "body_angle_deg": 58.944803,
+      "upper_arm_angle_deg": -85,
+      "elbow_angle_deg": 60
+    },
+    "rep_target": 8
+  },
+  {
+    "id": "counter-tucked-push-up",
+    "name": "Counter incline push-up, tucked (90 cm)",
+    "pattern": "push",
+    "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
+    "geometry": {
+      "support_segments": ["torso_m", "thigh_m", "shank_m"],
+      "mass_fraction": 1.0,
+      "com_fraction": 0.60,
+      "body_angle_deg": 45.860932,
+      "upper_arm_angle_deg": -90,
+      "elbow_angle_deg": 60
+    },
+    "rep_target": 8
+  },
+  {
+    "id": "counter-forward-push-up",
+    "name": "Counter incline push-up, headward hands (90 cm)",
+    "pattern": "push",
+    "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
+    "geometry": {
+      "support_segments": ["torso_m", "thigh_m", "shank_m"],
+      "mass_fraction": 1.0,
+      "com_fraction": 0.60,
+      "body_angle_deg": 44.311404,
+      "upper_arm_angle_deg": -85,
+      "elbow_angle_deg": 60
+    },
+    "rep_target": 8
+  },
+  {
+    "id": "incline-push-up",
+    "name": "Table incline push-up (75 cm)",
+    "pattern": "push",
+    "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
+    "geometry": {
+      "support_segments": ["torso_m", "thigh_m", "shank_m"],
+      "mass_fraction": 1.0,
+      "com_fraction": 0.60,
+      "body_angle_deg": 38.169472,
+      "upper_arm_angle_deg": -83,
       "elbow_angle_deg": 60
     },
     "rep_target": 8
@@ -40,6 +100,36 @@
       "com_fraction": 0.55,
       "body_angle_deg": 0,
       "upper_arm_angle_deg": -60,
+      "elbow_angle_deg": 60
+    },
+    "rep_target": 8
+  },
+  {
+    "id": "bench-push-up",
+    "name": "Bench incline push-up (45 cm)",
+    "pattern": "push",
+    "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
+    "geometry": {
+      "support_segments": ["torso_m", "thigh_m", "shank_m"],
+      "mass_fraction": 1.0,
+      "com_fraction": 0.60,
+      "body_angle_deg": 25.772719,
+      "upper_arm_angle_deg": -75,
+      "elbow_angle_deg": 60
+    },
+    "rep_target": 8
+  },
+  {
+    "id": "step-push-up",
+    "name": "Step incline push-up (25 cm)",
+    "pattern": "push",
+    "muscle_groups": ["chest", "triceps", "anterior_deltoids", "core"],
+    "geometry": {
+      "support_segments": ["torso_m", "thigh_m", "shank_m"],
+      "mass_fraction": 1.0,
+      "com_fraction": 0.60,
+      "body_angle_deg": 18.111845,
+      "upper_arm_angle_deg": -70,
       "elbow_angle_deg": 60
     },
     "rep_target": 8
