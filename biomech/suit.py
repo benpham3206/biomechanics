@@ -1,8 +1,8 @@
-"""Mech-suit v0: trunk lever about the hip, a hip spring, and its limits.
+"""Mech-suit v0: trunk lever about the hip, a hip gas strut, and its limits.
 
 One planar lever: head, arms and trunk (HAT) pivot about a lumped hip/L5-S1
 point. Trunk angle is forward lean from vertical; gravity acts on it. Hip angle
-is trunk-to-thigh flexion; the spring sees it. In a stoop they are equal; in a
+is trunk-to-thigh flexion; the strut sees it. In a stoop they are equal; in a
 squat, hip = trunk + thigh angle. Static only. See docs/mech-suit/SPEC.md.
 """
 
@@ -43,42 +43,71 @@ def trunk_moment(body, trunk_angle_deg, load_kg=0.0, load_reach_m=None):
 
 
 @dataclass(frozen=True)
-class SpringAssist:
-    """A linear spring wound on a hip cam: slack until engage_angle_deg.
+class StrutAssist:
+    """One gas strut per side, pushing between the trunk strut and a hip crank.
 
-    limit_angle_deg is a stretch limiter (a strap beside the spring): past it
-    the spring stops stretching, so torque plateaus instead of growing.
+    Geometry (per side): the strut's top end sits trunk_arm_m from the hip
+    along the trunk strut; its bottom end sits crank_m from the hip on a crank
+    fixed to the thigh bar. Standing, the angle between them is crank_angle_deg;
+    hip flexion h closes it to crank_angle_deg - h, which shortens the strut.
+    A slot at one end (lost motion) leaves the strut idle until its
+    centre-to-centre length falls to extended_m; it must never bottom out at
+    compressed_m inside the range of motion. Force rises linearly by
+    progression (fraction) over the stroke; 0.3 is an assumption until the
+    bench test measures it. Same idea as the gas-spring Laevo and BackX.
     """
-    stiffness_n_per_m: float
-    cam_radius_m: float
-    engage_angle_deg: float
-    limit_angle_deg: float | None = None
+    force_n: float
+    trunk_arm_m: float
+    crank_m: float
+    crank_angle_deg: float
+    extended_m: float
+    compressed_m: float
+    progression: float = 0.3
+    sides: int = 2
 
     def __post_init__(self):
-        positive(self.stiffness_n_per_m, "stiffness_n_per_m")
-        positive(self.cam_radius_m, "cam_radius_m")
-        _angle(self.engage_angle_deg, "engage_angle_deg")
-        if self.limit_angle_deg is not None:
-            _angle(self.limit_angle_deg, "limit_angle_deg")
-            if self.limit_angle_deg <= self.engage_angle_deg:
-                raise ValueError("limit_angle_deg must exceed engage_angle_deg")
+        for name in ("force_n", "trunk_arm_m", "crank_m", "extended_m", "compressed_m"):
+            positive(getattr(self, name), name)
+        number(self.crank_angle_deg, "crank_angle_deg", minimum=1, maximum=179)
+        number(self.progression, "progression", minimum=0, maximum=2)
+        if self.compressed_m >= self.extended_m:
+            raise ValueError("compressed_m must be shorter than extended_m")
+        if type(self.sides) is not int or self.sides not in (1, 2):
+            raise ValueError("sides must be 1 or 2")
+
+    def length_m(self, hip_angle_deg):
+        phi = math.radians(self.crank_angle_deg - hip_angle_deg)
+        a, b = self.trunk_arm_m, self.crank_m
+        return math.sqrt(a * a + b * b - 2 * a * b * math.cos(phi))
+
+    def engage_angle_deg(self):
+        """Hip angle where the slot closes and the strut starts pushing."""
+        a, b, ext = self.trunk_arm_m, self.crank_m, self.extended_m
+        c = (a * a + b * b - ext * ext) / (2 * a * b)
+        if c <= -1:
+            return 0.0  # strut is already loaded when standing
+        if c >= 1:
+            raise ValueError("strut never engages with this geometry")
+        return self.crank_angle_deg - math.degrees(math.acos(c))
 
 
 @dataclass(frozen=True)
 class Assist:
-    force_n: float
-    torque_nm: float
+    force_n: float      # strut force, per side
+    torque_nm: float    # total hip extension torque, all sides
 
 
-def assist_torque(spring, hip_angle_deg):
+def assist_torque(strut, hip_angle_deg):
     _angle(hip_angle_deg, "hip_angle_deg")
-    angle = hip_angle_deg
-    if spring.limit_angle_deg is not None:
-        angle = min(angle, spring.limit_angle_deg)
-    stretch = spring.cam_radius_m * math.radians(
-        max(0.0, angle - spring.engage_angle_deg))
-    force = spring.stiffness_n_per_m * stretch
-    return Assist(force, force * spring.cam_radius_m)
+    length = strut.length_m(hip_angle_deg)
+    if length >= strut.extended_m or hip_angle_deg >= strut.crank_angle_deg:
+        return Assist(0.0, 0.0)
+    stroke = strut.extended_m - strut.compressed_m
+    force = strut.force_n * (1 + strut.progression
+                             * min(1.0, (strut.extended_m - length) / stroke))
+    phi = math.radians(strut.crank_angle_deg - hip_angle_deg)
+    arm = strut.trunk_arm_m * strut.crank_m * math.sin(phi) / length
+    return Assist(force, strut.sides * force * arm)
 
 
 def interface_forces(torque_nm, chest_lever_m, thigh_lever_m):
@@ -110,15 +139,20 @@ def lumbar_compression(body, trunk_angle_deg, load_kg=0.0, load_reach_m=None,
     return moment / EXTENSOR_ARM_M + axial + added_axial_n
 
 
+# v0 build (docs/mech-suit/BUILD.md): one 400 N, 12 in gas strut per side.
+V0_STRUT = StrutAssist(force_n=400, trunk_arm_m=0.27, crank_m=0.06,
+                       crank_angle_deg=150, extended_m=0.305, compressed_m=0.206)
+
 SIT_POSE = (90, 5)  # hip 90, trunk 5 deg: sitting in a chair
 
 
 def load_case_poses(max_stoop_deg=110):
     """(hip_deg, trunk_deg) poses with the clutch ON: every stoop angle, and
-    squat lifts with thighs horizontal (hip = trunk + 90) for trunk 30..45 deg.
+    squat lifts with thighs horizontal (hip = trunk + 90) for trunk 30..45 deg,
+    which reach the deepest hip flexion (135 deg).
 
     Sitting or an upright deep squat (hip ~90+, trunk near 0) is NOT here: any
-    hip spring then pushes the trunk backward, so the clutch must be OFF.
+    hip assist then pushes the trunk backward, so the clutch must be OFF.
     SIT_POSE is kept as the known-bad case that check_design must flag.
     """
     stoop = [(a, a) for a in range(1, int(max_stoop_deg) + 1)]
@@ -126,14 +160,17 @@ def load_case_poses(max_stoop_deg=110):
     return stoop + squat
 
 
-def check_design(spring, body, poses, chest_lever_m,
+def check_design(strut, body, poses, chest_lever_m, max_hip_deg=135,
                  chest_limit_n=CHEST_LIMIT_N, recoil_cap=RECOIL_CAP):
     """Return safety issues over (hip_deg, trunk_deg) poses; empty means pass."""
     issues = []
-    if spring.engage_angle_deg < 5:
-        issues.append("spring must engage at >= 5 degrees so it is slack when upright")
+    if strut.engage_angle_deg() < 5:
+        issues.append("strut must engage at >= 5 degrees so it is slack when upright")
+    if strut.length_m(max_hip_deg) <= strut.compressed_m:
+        issues.append(f"strut bottoms out before {max_hip_deg} deg hip flexion, "
+                      "which would block motion")
     for hip, trunk in poses:
-        tau = assist_torque(spring, hip).torque_nm
+        tau = assist_torque(strut, hip).torque_nm
         own = trunk_moment(body, trunk)
         if tau > recoil_cap * own:
             issues.append(f"assist {tau:.1f} Nm exceeds {recoil_cap:.0%} of the "
@@ -141,7 +178,7 @@ def check_design(spring, body, poses, chest_lever_m,
                           f"trunk {trunk} deg")
             break
     for hip, _ in poses:
-        chest = assist_torque(spring, hip).torque_nm / chest_lever_m
+        chest = assist_torque(strut, hip).torque_nm / chest_lever_m
         if chest > chest_limit_n:
             issues.append(f"chest pad force {chest:.0f} N exceeds {chest_limit_n:.0f} N "
                           f"at hip {hip} deg")

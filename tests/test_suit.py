@@ -1,13 +1,15 @@
-"""Mech-suit lever checks, written before biomech/suit.py.
+"""Mech-suit lever checks (docs/mech-suit/SPEC.md, BUILD.md).
 
-Rules guarded: the trunk moment matches the hand calculation in
-docs/mech-suit/SPEC.md; the spring is slack at and below its engage angle, so
-it never pulls past upright; a design is rejected if its assist nears the
-trunk's own gravity moment (recoil risk) or if the chest pad force passes the
-interface limit; "feels like" kg follows from the moments; the assist-curve
-script runs from the repo root.
+Rules guarded: the trunk moment matches the hand calculation; the strut is
+idle until its slot closes, so it never pushes when standing; torque follows
+the strut geometry; a design is rejected if its assist nears the trunk's own
+gravity moment (recoil risk), if the chest pad force passes the interface
+limit, or if the strut bottoms out inside the range of motion (it would block
+movement); sitting with the clutch on stays a known-bad case; "feels like"
+kg follows from the moments; the assist-curve script runs from the repo root.
 """
 
+from dataclasses import replace
 import math
 from pathlib import Path
 import subprocess
@@ -15,14 +17,12 @@ import sys
 import unittest
 
 from biomech.measurements import load_body
-from biomech.suit import (SpringAssist, assist_torque, check_design, feels_like_kg,
-                          interface_forces, load_case_poses, lumbar_compression, SIT_POSE,
-                          trunk_moment)
+from biomech.suit import (SIT_POSE, V0_STRUT, StrutAssist, assist_torque, check_design,
+                          feels_like_kg, interface_forces, load_case_poses,
+                          lumbar_compression, trunk_moment)
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FRAME = SpringAssist(stiffness_n_per_m=7200, cam_radius_m=0.08, engage_angle_deg=15,
-                     limit_angle_deg=70)
 POSES = load_case_poses(110)
 
 
@@ -39,44 +39,40 @@ class SuitLever(unittest.TestCase):
         # Squat lift: trunk 45 degrees, 10 kg at an explicit 0.60 m reach.
         self.assertAlmostEqual(trunk_moment(self.body, 45, 10, 0.60), 172.20, places=1)
 
-    def test_spring_is_slack_at_and_below_engage_angle(self):
-        for angle in (-10, 0, 10, 15):
-            self.assertEqual(assist_torque(FRAME, angle).torque_nm, 0.0)
-        at_60 = assist_torque(FRAME, 60)
-        stretch = 0.08 * math.radians(45)
-        self.assertAlmostEqual(at_60.force_n, 7200 * stretch, places=6)
-        self.assertAlmostEqual(at_60.torque_nm, 7200 * stretch * 0.08, places=6)
-        # Past the 70 deg limiter the torque plateaus at 7200 * 0.08^2 * 55 deg.
-        self.assertAlmostEqual(assist_torque(FRAME, 110).torque_nm,
-                               7200 * 0.08 ** 2 * math.radians(55), places=6)
+    def test_strut_is_idle_until_the_slot_closes(self):
+        engage = V0_STRUT.engage_angle_deg()
+        self.assertAlmostEqual(engage, 29.33, places=1)
+        for angle in (-10, 0, 15, 29):
+            self.assertEqual(assist_torque(V0_STRUT, angle).torque_nm, 0.0)
+        self.assertGreater(assist_torque(V0_STRUT, 30).torque_nm, 0.0)
 
-    def test_safe_design_passes_and_unsafe_designs_fail(self):
-        self.assertEqual(check_design(FRAME, self.body, POSES,
-                                      chest_lever_m=0.44), [])
-        strong = SpringAssist(stiffness_n_per_m=20000, cam_radius_m=0.08,
-                              engage_angle_deg=15)
+    def test_strut_torque_hand_calculation(self):
+        # Hip 90: phi = 60 deg, L = sqrt(.27^2 + .06^2 - 2*.27*.06*cos 60).
+        length = math.sqrt(0.27 ** 2 + 0.06 ** 2 - 2 * 0.27 * 0.06 * 0.5)
+        force = 400 * (1 + 0.3 * (0.305 - length) / (0.305 - 0.206))
+        arm = 0.27 * 0.06 * math.sin(math.radians(60)) / length
+        result = assist_torque(V0_STRUT, 90)
+        self.assertAlmostEqual(result.force_n, force, places=6)
+        self.assertAlmostEqual(result.torque_nm, 2 * force * arm, places=6)
+
+    def test_v0_passes_and_unsafe_designs_fail(self):
+        self.assertEqual(check_design(V0_STRUT, self.body, POSES, chest_lever_m=0.44), [])
+        strong = replace(V0_STRUT, force_n=800)
         issues = check_design(strong, self.body, POSES, chest_lever_m=0.44)
         self.assertTrue(any("gravity moment" in issue for issue in issues))
         self.assertTrue(any("chest" in issue for issue in issues))
-        early = SpringAssist(stiffness_n_per_m=7200, cam_radius_m=0.08,
-                             engage_angle_deg=0)
+        preloaded = replace(V0_STRUT, extended_m=0.33)
         self.assertTrue(any("engage" in issue for issue in check_design(
-            early, self.body, POSES, chest_lever_m=0.44)))
-        # Deep squat (hip 135 deg) without the stretch limiter: worst case fails.
-        unlimited = SpringAssist(stiffness_n_per_m=7200, cam_radius_m=0.08,
-                                 engage_angle_deg=15)
-        self.assertEqual(check_design(unlimited, self.body, load_case_poses(110)[:110],
-                                      chest_lever_m=0.44), [])
-        self.assertNotEqual(check_design(unlimited, self.body, POSES,
-                                         chest_lever_m=0.44), [])
-        self.assertAlmostEqual(assist_torque(FRAME, 135).torque_nm,
-                               assist_torque(FRAME, 70).torque_nm)
+            preloaded, self.body, POSES, chest_lever_m=0.44)))
+        short = replace(V0_STRUT, compressed_m=0.215)
+        self.assertTrue(any("bottoms out" in issue for issue in check_design(
+            short, self.body, POSES, chest_lever_m=0.44)))
         # Known-bad case: sitting with the clutch on pushes the trunk backward.
         self.assertTrue(any("gravity moment" in issue for issue in check_design(
-            FRAME, self.body, [SIT_POSE], chest_lever_m=0.44)))
+            V0_STRUT, self.body, [SIT_POSE], chest_lever_m=0.44)))
         # Same torque through a soft band (lever = band radius) overloads the strap.
         self.assertTrue(any("chest" in issue for issue in check_design(
-            FRAME, self.body, POSES, chest_lever_m=0.15)))
+            V0_STRUT, self.body, POSES, chest_lever_m=0.15)))
 
     def test_interface_forces_are_torque_over_lever(self):
         chest, thigh = interface_forces(60, chest_lever_m=0.44, thigh_lever_m=0.30)
@@ -84,7 +80,7 @@ class SuitLever(unittest.TestCase):
         self.assertAlmostEqual(thigh, 60 / 0.30)
 
     def test_feels_like(self):
-        tau = assist_torque(FRAME, 90).torque_nm
+        tau = assist_torque(V0_STRUT, 90).torque_nm
         felt = feels_like_kg(self.body, 90, 15, tau)
         self.assertAlmostEqual(felt, 15 - tau / (9.81 * 0.55), places=6)
         self.assertEqual(feels_like_kg(self.body, 90, 2, 500), 0.0)
@@ -99,14 +95,14 @@ class SuitLever(unittest.TestCase):
 
     def test_rejects_bad_inputs(self):
         with self.assertRaises(ValueError):
-            SpringAssist(stiffness_n_per_m=0, cam_radius_m=0.08, engage_angle_deg=15)
+            replace(V0_STRUT, force_n=0)
         with self.assertRaises(ValueError):
-            SpringAssist(stiffness_n_per_m=1, cam_radius_m=0.08, engage_angle_deg=15,
-                         limit_angle_deg=10)
+            replace(V0_STRUT, compressed_m=0.4)
         with self.assertRaises(ValueError):
             trunk_moment(self.body, 200)
         with self.assertRaises(ValueError):
             trunk_moment(self.body, 90, -1)
+        self.assertIsInstance(V0_STRUT, StrutAssist)
 
     def test_assist_curve_script(self):
         run = subprocess.run([sys.executable, "scripts/assist_curve.py"], cwd=ROOT,

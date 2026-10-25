@@ -10,7 +10,7 @@ for use, `docs/model.md` for the physical assumptions, and `STATUS.md` for scope
 - `biomech/sessions.py`: completed-set schema and chronological log validation.
 - `biomech/__main__.py`: read-only JSON CLI.
 - `biomech/validation.py`: shared boundary checks.
-- `biomech/suit.py`: mech-suit hip lever, spring assist, and safety check (see `docs/mech-suit/SPEC.md`).
+- `biomech/suit.py`: mech-suit hip lever, gas-strut assist (`V0_STRUT`), and safety check (see `docs/mech-suit/SPEC.md`, `BUILD.md`).
 - `scripts/assist_curve.py`: prints the suit's assist curve and load cases.
 - `data/`: fictional examples and the four-move push catalogue.
 - `tests/test_framework.py`: arithmetic checks and CLI acceptance scenarios.
@@ -33,5 +33,6 @@ Keep real measurements, logs, credentials, and generated artifacts out of Git.
 Run `python3 scripts/verify.py` before committing. It runs all checks and writes
 `artifacts/verification.json`; nonzero exit means failure.
 
-This task stays on `v1-lever-model` with local commits only. Do not push,
-publish a PR, merge, or modify `main`. Keep the canonical Git safety guard enabled.
+Work on a feature branch and open a PR. Commits, branch pushes and PRs are
+fine. Merging or pushing to `main` needs Ben's explicit yes. Keep the
+canonical Git safety guard enabled.
