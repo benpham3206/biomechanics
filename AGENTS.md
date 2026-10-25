@@ -10,6 +10,8 @@ for use, `docs/model.md` for the physical assumptions, and `STATUS.md` for scope
 - `biomech/sessions.py`: completed-set schema and chronological log validation.
 - `biomech/__main__.py`: read-only JSON CLI.
 - `biomech/validation.py`: shared boundary checks.
+- `biomech/suit.py`: mech-suit hip lever, spring assist, and safety check (see `docs/mech-suit/SPEC.md`).
+- `scripts/assist_curve.py`: prints the suit's assist curve and load cases.
 - `data/`: fictional examples and the four-move push catalogue.
 - `tests/test_framework.py`: arithmetic checks and CLI acceptance scenarios.
 - `scripts/verify.py`: the sole verification entry point and artifact writer.
