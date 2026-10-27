@@ -49,6 +49,12 @@ calendar, set-volume plan, or automatic log writer. The CLI uses the latest set
 in the selected pattern; an empty log produces a clear error. See
 [docs/api.md](docs/api.md) for direct Python use.
 
+## Mech suit (draft)
+
+[docs/mech-suit/SPEC.md](docs/mech-suit/SPEC.md) applies the same lever model to a
+hip/low-back lift amplifier. Run `python3 scripts/assist_curve.py` for its
+assist curve and safety check (example data).
+
 ## Verify
 
 This one command runs the full acceptance suite, the CLI example, and the
