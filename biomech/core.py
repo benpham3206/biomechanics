@@ -109,6 +109,11 @@ def lever_load(move, body):
     return LeverLoad(hand_force, arm, torque)
 
 
+# Even progression steps: aim for +10% relative torque; accept 5-15%.
+STEP_TARGET = .10
+STEP_BAND = (.05, .15)
+
+
 def rank_moves(moves, body, strength_reference_nm, pattern):
     """Rank a pattern by torque / a positive bilateral strength reference."""
     positive(strength_reference_nm, "strength_reference_nm")
@@ -152,13 +157,14 @@ def recommend(session, moves, body, strength_reference_nm):
                   for item in harder]
     for _, jump in candidates:
         positive(jump, "computed progression jump")
+    low, high = STEP_BAND
     in_band = [(item, jump) for item, jump in candidates
-               if .10 <= jump <= .20 or math.isclose(jump, .10) or math.isclose(jump, .20)]
+               if low <= jump <= high or math.isclose(jump, low) or math.isclose(jump, high)]
     target, jump = min(in_band or candidates,
-                       key=lambda pair: (abs(pair[1] - .15), pair[0].relative_torque))
+                       key=lambda pair: (abs(pair[1] - STEP_TARGET), pair[0].relative_torque))
     flagged = not in_band
     reason = (f"Rep target met at RPE <= 7 without discomfort; "
               f"relative torque increases {jump:.1%}. "
-              + ("Closest available step is outside the 10-20% band; review the jump."
-                 if flagged else "Step is within the 10-20% band."))
+              + ("Closest available step is outside the 5-15% band (target +10%); review the jump."
+                 if flagged else "Step is within the 5-15% band (target +10%)."))
     return Decision("progress", target.move.id, reason, jump, flagged)

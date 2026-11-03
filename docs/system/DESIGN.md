@@ -1,5 +1,7 @@
 # Calisthenics system design (v0 draft)
 
+**Decided by Ben, Nov 2, 2026:** stamina = zone-2 cardio + weekly 10-min EMOM from week 4; level step = even +10% joint torque; app = native phone app first (iOS-first); 5 short training days.
+
 Goal: one app that trains **stretch, strength and stamina** for a complete beginner, with progression set by the repo's lever model instead of a coach's guessed list. This is a design, not medical advice. Stop any exercise that causes pain and see a qualified professional for injuries.
 
 Terms used once:
@@ -26,7 +28,7 @@ Apps split into strength ladders (Hybrid Calisthenics, Calistree, Caliverse), co
 
 **Score.** For each move, `lever_load` (biomech/core.py) computes joint torque from the user's own limb lengths (biomech/measurements.py). Difficulty = torque / the user's strength reference at that joint (`relative_torque`). Today only the push pattern exists on main (moves: see data/moves.json); the other five need geometry models.
 
-**Even steps.** The ideal next step is about +10% joint torque. Main's `recommend()` currently accepts a 10-20% band and aims at 15%, flagging jumps outside it. When the catalogue has gaps, fill them with continuous adjusters: hand height on an incline (any angle), tempo (slower lowering), pause reps, or partial range.
+**Even steps (decided).** Each next step is +10% joint torque. `recommend()` now aims at +10% and accepts 5-15%, flagging anything outside (this PR). The current push catalogue has 12-19% gaps, so six of nine steps are flagged until in-between moves are added. When the catalogue has gaps, fill them with continuous adjusters: hand height on an incline (any angle), tempo (slower lowering), pause reps, or partial range.
 
 **Progress readout.** "You're at 82% of next level": current torque x rep quality vs next step's torque. Also show Nm per joint over time.
 
@@ -56,7 +58,7 @@ Progress = +range (cm/degrees) first, then +time, then +load. Never bounce, neve
 | C. Zone-2 cardio (walk/jog, row, cycle) | +10% minutes per week, 20 -> 45 min; later pace at the same heart rate | best-evidenced aerobic base; low skill; recovers fast; doesn't tire the strength muscles much | needs time, maybe a heart-rate strap; less "calisthenics"; running adds impact |
 | D. Intervals (e.g. 30 s hard / 90 s easy, bike or hill sprints) | +1 interval, then shorter rest | time-efficient; raises top-end fitness | hardest on recovery; not ideal before an aerobic base |
 
-**My pick: C (zone-2) as the base, plus a short B (EMOM finisher) once a week after week 4.** A beginner gains the most from easy aerobic volume, it barely competes with strength recovery, and the EMOM gives a calisthenics-flavoured, scoreable test. Intervals (D) come later, after about 8 weeks.
+**Decided: C (zone-2) as the base, plus a 10-min B (EMOM finisher) once a week from week 4.** A beginner gains the most from easy aerobic volume, it barely competes with strength recovery, and the EMOM gives a calisthenics-flavoured, scoreable test. Intervals (D) come later, after about 8 weeks.
 
 ## 4. Beginner placement test (about 20 min, measured)
 Do once at start and every 6 weeks.
@@ -67,7 +69,7 @@ Do once at start and every 6 weeks.
 - **Stamina**: talk-test walk/jog for 10 min (can you speak in sentences?) or resting heart rate.
 - Skip any part that hurts; mark it "not tested" and start at the lowest level.
 
-## 5. Weekly structure (complete beginner)
+## 5. Weekly structure (complete beginner, decided: 5 short days)
 | Day | Session (about 30-40 min) |
 |---|---|
 | Mon | Strength A (push, squat, core) + 10 min stretch |
@@ -110,7 +112,7 @@ StretchLog(session_id, joint, side, range_value, unit, hold_s, load_kg)
 CardioLog(session_id, mode, minutes, distance_m, avg_hr, talk_test_ok)
 Decision(move_id, action, target_id, jump, reason)   # recommend() output
 ```
-Stack (suggested, needs Ben): Python core stays the source of truth; expose via a small API (FastAPI) and a phone front end (React Native/Expo) or a PWA first. Local-first storage (SQLite).
+Platform (decided): native phone app first, iOS-first. SwiftUI is likely, but the framework choice belongs to Engineer Bot (CTO). The progression rules live in the Python core today; Engineer Bot decides whether to port them to Swift or call a small API, keeping the repo tests as the reference. Local-first storage on the phone. Native perks to plan for: Apple Health for cardio minutes and heart rate, camera for range-of-motion photos.
 
 Out of MVP: social, nutrition, video library, wearables beyond manual heart rate.
 
@@ -121,8 +123,9 @@ Out of MVP: social, nutrition, video library, wearables beyond manual heart rate
 - Body-model numbers are estimates from a 2D lever model, not measurements of tissue limits.
 - No medical claims. Anyone with an injury or condition should check with a clinician first.
 
-## Decisions for Ben
-1. Stamina pick: zone-2 base + weekly EMOM (my pick) vs circuits vs intervals.
-2. Step size: +10% target (this doc) vs main's current 10-20% band aiming 15%.
-3. App form: PWA first (my pick, fastest) vs native phone app.
-4. Days per week: 5 short (above) vs 3 longer.
+## Decisions
+Decided by Ben (Nov 2, 2026): zone-2 + weekly EMOM from week 4; even +10% steps; native app first; 5 short days.
+
+Open:
+1. Framework for the native app (Engineer Bot's call; SwiftUI likely).
+2. Which in-between push moves to add so steps land near +10%.

@@ -112,12 +112,20 @@ class FrameworkAcceptance(unittest.TestCase):
         stronger = rank_moves(self.moves, self.body, 300, "push")
         self.assertAlmostEqual(stronger[-1].relative_torque, .4305795, places=6)
 
-    def test_progress_in_target_band(self):
+    def test_progress_above_band_is_flagged(self):
+        # Catalogue step is 18.3%, above the 5-15% band around the +10% target.
         result = self.decision(self.session("incline-push-up", reps=9))
         self.assertEqual((result.action, result.move_id, result.flagged_jump),
-                         ("progress", "knee-push-up", False))
+                         ("progress", "knee-push-up", True))
         self.assertAlmostEqual(result.jump_fraction, .1831210, places=6)
         self.assertIn("18.3%", result.reason)
+
+    def test_progress_in_target_band(self):
+        # knee -> bench is 13.5%, inside the 5-15% band.
+        result = self.decision(self.session("knee-push-up", reps=9))
+        self.assertEqual((result.action, result.move_id, result.flagged_jump),
+                         ("progress", "bench-push-up", False))
+        self.assertIn("target +10%", result.reason)
 
     def test_large_jump_is_closest_and_flagged(self):
         sparse = [self.by_id[move_id] for move_id in
@@ -156,8 +164,8 @@ class FrameworkAcceptance(unittest.TestCase):
     def test_band_selection_skips_tiny_step_and_flags_small_fallback(self):
         raw = json.loads((DATA / "moves.json").read_text())[-1]
         variants = []
-        for move_id, mass_fraction in [("base", .5), ("tiny", .525),
-                                       ("ideal", .575), ("large", .7)]:
+        for move_id, mass_fraction in [("base", .5), ("tiny", .51),
+                                       ("ideal", .55), ("large", .7)]:
             item = copy.deepcopy(raw)
             item["id"] = move_id
             item["geometry"]["mass_fraction"] = mass_fraction
@@ -170,7 +178,7 @@ class FrameworkAcceptance(unittest.TestCase):
         self.assertEqual((result.move_id, result.flagged_jump), ("ideal", False))
         fallback = self.decision(self.session("base"), moves[:2])
         self.assertEqual((fallback.move_id, fallback.flagged_jump), ("tiny", True))
-        self.assertAlmostEqual(fallback.jump_fraction, .05)
+        self.assertAlmostEqual(fallback.jump_fraction, .02)
 
     def test_example_log_and_body_round_trip(self):
         self.assertEqual(self.body.mass_kg, 70)
@@ -276,7 +284,7 @@ class FrameworkAcceptance(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             output = json.loads(result.stdout)
             self.assertEqual(output["decision"]["move_id"], "knee-push-up")
-            self.assertFalse(output["decision"]["flagged_jump"])
+            self.assertTrue(output["decision"]["flagged_jump"])  # 18.3% > 15%
             self.assertEqual(log.read_bytes(), original)
             for text in ["[]", "{}", "broken json"]:
                 log.write_text(text)
@@ -345,17 +353,17 @@ class FrameworkAcceptance(unittest.TestCase):
         scenarios = [
             ("wall-push-up", 5, 6, False, "hold", "wall-push-up", False),
             ("wall-push-up", 8, 8, False, "hold", "wall-push-up", False),
-            ("wall-push-up", 8, 7, False, "progress", "high-rail-push-up", False),
-            ("high-rail-push-up", 8, 7, False, "progress", "rail-push-up", False),
-            ("rail-push-up", 8, 7, False, "progress", "counter-tucked-push-up", False),
-            ("counter-tucked-push-up", 8, 7, False, "progress", "counter-forward-push-up", False),
+            ("wall-push-up", 8, 7, False, "progress", "high-rail-push-up", True),
+            ("high-rail-push-up", 8, 7, False, "progress", "rail-push-up", True),
+            ("rail-push-up", 8, 7, False, "progress", "counter-tucked-push-up", True),
+            ("counter-tucked-push-up", 8, 7, False, "progress", "counter-forward-push-up", True),
             ("counter-forward-push-up", 12, 2, True, "regress", "counter-tucked-push-up", False),
-            ("counter-tucked-push-up", 8, 6, False, "progress", "counter-forward-push-up", False),
+            ("counter-tucked-push-up", 8, 6, False, "progress", "counter-forward-push-up", True),
             ("counter-forward-push-up", 8, 7, False, "progress", "incline-push-up", False),
-            ("incline-push-up", 8, 7, False, "progress", "knee-push-up", False),
+            ("incline-push-up", 8, 7, False, "progress", "knee-push-up", True),
             ("knee-push-up", 8, 6, False, "progress", "bench-push-up", False),
             ("bench-push-up", 8, 7, False, "progress", "step-push-up", False),
-            ("step-push-up", 8, 7, False, "progress", "full-push-up", False),
+            ("step-push-up", 8, 7, False, "progress", "full-push-up", True),
             ("full-push-up", 8, 7, False, "hold", "full-push-up", False),
         ]
         trace, history = [], []
@@ -376,14 +384,15 @@ class FrameworkAcceptance(unittest.TestCase):
                     (decision["action"], decision["move_id"], decision["flagged_jump"]),
                     (action, target, flagged))
                 if action == "progress":
-                    self.assertGreaterEqual(decision["jump_fraction"], .10)
-                    self.assertLessEqual(decision["jump_fraction"], .20)
+                    # Ben's rule: even +10% steps, accepted band 5-15%.
+                    in_band = .05 <= decision["jump_fraction"] <= .15 + 1e-9
+                    self.assertEqual(decision["flagged_jump"], not in_band)
                 trace.append({"session": history[-1], "decision": decision})
         print("BEGINNER_RUN=" + json.dumps(trace, sort_keys=True))
 
     def test_cli_band_boundaries_and_equal_distance_tie(self):
         # Failure inventory: floating-point endpoints fall outside the band;
-        # a 10%/20% tie selects the larger step due to rounding noise.
+        # a 5%/15% tie selects the larger step due to rounding noise.
         raw = json.loads((DATA / "moves.json").read_text())[-1]
         with tempfile.TemporaryDirectory() as folder:
             folder = Path(folder)
@@ -393,10 +402,10 @@ class FrameworkAcceptance(unittest.TestCase):
                 "rpe": 7, "discomfort": False, "discomfort_notes": "",
             }]))
             source = folder / "moves.json"
-            for fractions, target in [
-                ([.5, .55], "candidate-1"),
-                ([.5, .6], "candidate-1"),
-                ([.5, .55, .6], "candidate-1"),
+            for fractions, target, flagged in [
+                ([.5, .55], "candidate-1", False),
+                ([.5, .6], "candidate-1", True),
+                ([.5, .55, .6], "candidate-1", False),
             ]:
                 variants = []
                 for index, fraction in enumerate(fractions):
@@ -409,7 +418,7 @@ class FrameworkAcceptance(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 decision = json.loads(result.stdout)["decision"]
                 self.assertEqual((decision["move_id"], decision["flagged_jump"]),
-                                 (target, False))
+                                 (target, flagged))
 
     def test_cli_numeric_limits_fail_with_input_errors(self):
         # Failure inventory: huge JSON integers overflow float conversion;
