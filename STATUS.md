@@ -6,8 +6,8 @@
   external shoulder torque. Equations and hand calculations are in `docs/model.md`.
 - Ten data-driven push steps, muscle tags, geometry, and 8-rep targets.
 - Relative-torque ranking using an explicit positive strength reference.
-- Progress/hold/regress decisions with reasons, discomfort priority, a 10–20%
-  target band, flagged fallback jumps, and explicit bottom/top behavior.
+- Progress/hold/regress decisions with reasons, discomfort priority, a 5–15% band around a +10% target (was 10–20%)
+  progression rule, flagged fallback jumps, and explicit bottom/top behavior.
 - Strict JSON body, move, and session loaders; manual dimension construction.
 - Documented lidar-viewer PLY interface that raises `NotImplementedError`.
 - Read-only JSON CLI with clear input errors.

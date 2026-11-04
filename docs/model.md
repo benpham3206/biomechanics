@@ -224,8 +224,9 @@ For the example body and `T_ref = 150 Nm`:
 | Full push-up | 0.000000° | -60° | 322.9346 N | 129.1738 Nm | 0.8612 | 17.3% |
 
 All entries use `beta = 60°` and target 8 completed reps. All nine consecutive
-jumps are within the inclusive 10–20% band using unrounded computed values
-(minimum 12.4%, maximum 18.6% when displayed). The order is calculated from
+jumps fall between 12.4% and 18.6% (unrounded computed values). Only three
+(13.5%, 12.4%, 15.0%) sit inside the 5–15% progression band, so the other six
+steps are flagged until the catalogue gains in-between moves. The order is calculated from
 torque, not hard-coded from names, surface height, or file order. Different
 body dimensions or geometry can change the order and the gaps.
 
@@ -240,10 +241,12 @@ Use the latest completed set in the current pattern. Apply rules in this order:
 2. **Hold** if reps are below the move's target, or if RPE is above 7.
 3. Otherwise, consider all strictly harder moves in that pattern. Define
    `jump = relative_next / relative_current - 1`. Prefer a jump in the inclusive
-   10–20% band, closest to 15%. If tied, pick the lower-torque candidate.
+   5–15% band, closest to the +10% target (`STEP_TARGET`, `STEP_BAND` in
+   `biomech/core.py`; Ben chose even +10% steps on Nov 2, 2026). If tied, pick
+   the lower-torque candidate.
 4. If no move is in that band, **pick the closest available harder move to
-   15% and flag it**. This covers a jump larger than 20%, and also a catalogue
-   with only jumps smaller than 10%. The reason states the percentage and
+   10% and flag it**. This covers a jump larger than 15%, and also a catalogue
+   with only jumps smaller than 5%. The reason states the percentage and
    that it is outside the band. It is a suggestion for review, not an
    automatic instruction to attempt the larger jump.
 5. At the top, **hold** with an explicit ceiling reason. Equal-torque moves
@@ -251,7 +254,7 @@ Use the latest completed set in the current pattern. Apply rules in this order:
 
 All results contain an action, target move ID, and reason string. Only
 progression results contain `jump_fraction`; `flagged_jump` is false otherwise.
-The 10–20% band is the requested policy heuristic, not an injury-risk estimate
+The 5–15% band around +10% is the requested policy heuristic, not an injury-risk estimate
 or a demonstrated optimum for adaptation. The engine does not apply the
 recommendation, change the strength reference, or alter session history.
 

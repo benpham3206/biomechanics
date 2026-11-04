@@ -25,8 +25,9 @@ The example uses a fictional 70 kg body and a **bilateral** shoulder strength
 reference of 150 Nm. That reference is an example normalization value, not a
 strength estimate for you. The output ranks the moves and suggests knee push-ups
 after the last logged table incline set: 8 reps at RPE 7, without discomfort.
-Its estimated relative torque is 18.3% higher. Every consecutive push step is
-10–20% higher for this example body. The [step table](docs/model.md#difficulty-and-ranking)
+Its estimated relative torque is 18.3% higher. Consecutive push steps are 12–19%
+higher for this example body; the policy targets +10% (accepting 5–15%), so
+steps above 15%, including this one, are flagged for review. The [step table](docs/model.md#difficulty-and-ranking)
 lists the poses and calculated jumps; other dimensions can change them.
 
 To use your own inputs:
@@ -40,7 +41,7 @@ To use your own inputs:
    reference. See the model for its units and interpretation. RPE runs from 1
    (lowest effort) to 10 (highest effort); the progress threshold is 7.
 4. Read `decision.reason`. A flagged jump needs review because the catalogue
-   has no suitable 10–20% step. A discomfort result means stop the current move;
+   has no step within 5–15% of the +10% target. A discomfort result means stop the current move;
    an easier option is only for after discomfort resolves. At the bottom,
    `move_id` is `null`.
 
